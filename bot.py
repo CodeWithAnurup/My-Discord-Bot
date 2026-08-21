@@ -16,13 +16,34 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ── Keep-Alive Web Server ─────────────────────────────────────────────────────
+# ── Keep-Alive Web Server (UptimeRobot) ──────────────────────────────────────
 async def handle(request):
-    return web.Response(text="Bot is alive!")
+    """Root endpoint — UptimeRobot HTTP monitor pings this."""
+    return web.Response(
+        text="OK",
+        status=200,
+        content_type="text/plain"
+    )
+
+async def health(request):
+    """Health endpoint — UptimeRobot Keyword monitor looks for 'online' here."""
+    import json
+    data = {
+        "status": "online",
+        "bot": str(bot.user) if bot.user else "starting",
+        "latency_ms": round(bot.latency * 1000, 2),
+        "guilds": len(bot.guilds),
+    }
+    return web.Response(
+        text=json.dumps(data),
+        status=200,
+        content_type="application/json"
+    )
 
 async def start_webserver():
     app = web.Application()
-    app.router.add_get("/", handle)
+    app.router.add_get("/", handle)          # UptimeRobot HTTP monitor → /
+    app.router.add_get("/health", health)    # UptimeRobot Keyword monitor → /health
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.environ.get("PORT", 8080))
